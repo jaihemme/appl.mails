@@ -1,0 +1,3 @@
+# export de mails avc tag depuis gmail
+cp -r /Users/yogi/iCloud/Appartement\ Neyruz/Courrier/PPE.mbox PPE
+
