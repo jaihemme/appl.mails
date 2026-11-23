@@ -246,7 +246,59 @@ venv/bin/python -m pytest tests/ -v      # 55 tests
 
 ---
 
-## 🚀 Chaîne complète d'exécution
+## 🐳 Docker — pipeline complet sur un nouveau mbox
+
+Le conteneur enchaîne les 3 scripts sur tout nouveau fichier `.mbox` déposé dans le
+dossier d'entrée mappé, et met à jour les rapports (conversations, pièces jointes,
+cache LLM et rapports persistent dans le volume).
+
+### Fichiers
+
+- `Dockerfile` — image `python:3.13-slim` (bibliothèque standard uniquement,
+  ~144 Mo), `PYTHONUTF8=1`, fuseau `Europe/Zurich`.
+- `docker/entrypoint.sh` — enchaîne mbox2eml → eml2json_update → generate_reports.
+
+### Construction et exécution
+
+```bash
+docker build -t appl.mails .
+
+# déposer les .mbox dans <dossier>/input/ puis :
+docker run --rm \
+    -e OPENAI_API_KEY=sk-… \
+    -v /chemin/vers/dossier:/data \
+    appl.mails
+```
+
+(À défaut de `-e OPENAI_API_KEY=…`, utiliser `--env-file <fichier>` ; sans clé,
+le pipeline fonctionne et les résumés restent « indisponible » jusqu'à un run avec clé.)
+
+### Organisation du volume `/data`
+
+```text
+/data
+├── input/*.mbox            ← déposer ici les nouveaux mbox
+│   └── processed/          ← les mbox traités sont déplacés ici
+├── mbox.d/                 ← .eml extraits
+├── conversations.json      ← JSON consolidé des conversations
+├── pieces_jointes.d/       ← fichiers des pièces jointes
+├── reports.d/              ← rapports Markdown (un par conversation)
+├── openai_cache.d/         ← cache des résumés LLM
+└── logs/                   ← journaux
+```
+
+### Comportement
+
+- Chaque `*.mbox` de `input/` est converti puis **déplacé dans `input/processed/`** :
+  ré-exécuter le conteneur ne re-traite pas les anciens mails.
+- La mise à jour est **incrémentale** : déduplication par `message_id`, les rapports
+  ne sont régénérés que pour les conversations modifiées (sauf `--force`).
+- Un mbox vide ou illisible est ignoré sans bloquer le reste du pipeline.
+- Un run sans nouveau mbox ne fait rien (idempotent).
+
+---
+
+## 🚀 Chaîne complète d'exécution (sans Docker)
 
 ```bash
 # 1. découpe d'une boîte mbox en .eml

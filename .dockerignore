@@ -1,0 +1,15 @@
+# le contexte de build n'a besoin que de src/ et docker/
+venv/
+docs/
+tests/
+PPE/
+skills/
+TENERIFE/
+.idea/
+.git/
+.DS_Store
+__pycache__/
+**/__pycache__/
+*.log
+readme
+*.mbox
