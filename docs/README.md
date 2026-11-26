@@ -8,7 +8,10 @@ boite.mbox ──mbox2eml──▶ mbox.d/*.eml ──eml2json_update──▶ c
                                         generate_reports ──────┘
                                                                ▼
                                                     reports.d/*.md (+ résumé LLM)
-```
+                                                               │
+                                        create_index ──────────┘
+                                                               ▼
+                                                    reports.d/INDEX.md```
 
 ---
 
@@ -20,6 +23,7 @@ boite.mbox ──mbox2eml──▶ mbox.d/*.eml ──eml2json_update──▶ c
 │   ├── mbox2eml.py            # 1. découpe un fichier mbox en .eml individuels
 │   ├── eml2json_update.py     # 2. parse les .eml et consolide un JSON de conversations
 │   ├── generate_reports.py    # 3. génère les rapports Markdown (résumé LLM)
+│   ├── create_index.py        # 4. génère un index sur tous les rapports Markdown (INDEX.md)
 │   └── …                      # autres scripts utilitaires
 ├── tests/
 │   ├── test_mbox2eml.py       # suite pytest (3 fichiers, 55 tests)
@@ -43,9 +47,9 @@ boite.mbox ──mbox2eml──▶ mbox.d/*.eml ──eml2json_update──▶ c
 python3 src/mbox2eml.py SOURCE [DESTINATION]
 ```
 
-| Argument | Description |
-| :--- | :--- |
-| `SOURCE` *(requis)* | Fichier au format mbox (doit exister). |
+| Argument                    | Description                                                            |
+|:----------------------------|:-----------------------------------------------------------------------|
+| `SOURCE` *(requis)*         | Fichier au format mbox (doit exister).                                 |
 | `DESTINATION` *(optionnel)* | Dossier des `.eml` ; par défaut **`mbox.d`** à côté du fichier source. |
 
 ### Nom des fichiers `.eml` générés
@@ -86,15 +90,15 @@ est exclue, comme il se doit pour un `.eml`.
 python3 src/eml2json_update.py --input <FICHIER_OU_DOSSIER_EML> --json_file <FICHIER_JSON> [OPTIONS]
 ```
 
-| Argument | Type | Description |
-| :--- | :---: | :--- |
-| `--input` | *Requis* | Fichier `.eml` ou répertoire exploré récursivement (ex. `mbox.d`, `PPE`). |
-| `--json_file` | *Requis* | JSON à mettre à jour ou à créer (ex. `data/ppe.json`). |
-| `--output` | *Optionnel* | Chemin de sortie alternatif (défaut : identique à `--json_file`). |
-| `--attachment-dir` | *Optionnel* | Dossier où écrire les pièces jointes (défaut : **`pieces_jointes.d`** à côté du JSON de sortie). |
-| `--dry-run` | *Optionnel* | Simulation : JSON non sauvegardé **et** pièces jointes non écrites (les chemins projetés figurent dans le résultat). |
-| `--log-level` | *Optionnel* | `debug`, `info` (défaut), `warning`, `error`. |
-| `--log-file` | *Optionnel* | Fichier de logs (défaut : `update_conversations.log`). |
+| Argument           |    Type     | Description                                                                                                          |
+|:-------------------|:-----------:|:---------------------------------------------------------------------------------------------------------------------|
+| `--input`          |  *Requis*   | Fichier `.eml` ou répertoire exploré récursivement (ex. `mbox.d`, `PPE`).                                            |
+| `--json_file`      |  *Requis*   | JSON à mettre à jour ou à créer (ex. `data/ppe.json`).                                                               |
+| `--output`         | *Optionnel* | Chemin de sortie alternatif (défaut : identique à `--json_file`).                                                    |
+| `--attachment-dir` | *Optionnel* | Dossier où écrire les pièces jointes (défaut : **`pieces_jointes.d`** à côté du JSON de sortie).                     |
+| `--dry-run`        | *Optionnel* | Simulation : JSON non sauvegardé **et** pièces jointes non écrites (les chemins projetés figurent dans le résultat). |
+| `--log-level`      | *Optionnel* | `debug`, `info` (défaut), `warning`, `error`.                                                                        |
+| `--log-file`       | *Optionnel* | Fichier de logs (défaut : `update_conversations.log`).                                                               |
 
 ### Comportement
 
@@ -131,13 +135,13 @@ python3 src/eml2json_update.py --input <FICHIER_OU_DOSSIER_EML> --json_file <FIC
 python3 src/generate_reports.py --input <FICHIER_JSON> [OPTIONS]
 ```
 
-| Argument | Type | Description |
-| :--- | :---: | :--- |
-| `--input` | *Requis* | JSON de conversations (ex. `data/ppe.json`). |
-| `--rapports-dir` | *Optionnel* | Dossier des rapports (défaut : **`reports.d`** à côté du JSON d'entrée). |
+| Argument           |    Type     | Description                                                                                           |
+|:-------------------|:-----------:|:------------------------------------------------------------------------------------------------------|
+| `--input`          |  *Requis*   | JSON de conversations (ex. `data/ppe.json`).                                                          |
+| `--rapports-dir`   | *Optionnel* | Dossier des rapports (défaut : **`reports.d`** à côté du JSON d'entrée).                              |
 | `--attachment-dir` | *Optionnel* | Dossier contenant les fichiers des pièces jointes (défaut : `attachments.d` à côté du JSON d'entrée). |
-| `--llm-cache-dir` | *Optionnel* | Dossier du cache des réponses LLM (défaut : **`openai_cache.d`** à côté du JSON d'entrée). |
-| `--force` | *Optionnel* | Régénère les rapports même inchangés. |
+| `--llm-cache-dir`  | *Optionnel* | Dossier du cache des réponses LLM (défaut : **`openai_cache.d`** à côté du JSON d'entrée).            |
+| `--force`          | *Optionnel* | Régénère les rapports même inchangés.                                                                 |
 
 ### Rapport généré (`reports.d/<sujet_normalisé>.md`)
 
@@ -160,6 +164,27 @@ python3 src/generate_reports.py --input <FICHIER_JSON> [OPTIONS]
   ou changer `OPENAI_MODEL`.
 - Robustesse : clé absente ou erreur API → avertissement et texte de repli
   « Résumé narratif indisponible (…) » ; la génération de rapport n'échoue jamais à cause du LLM.
+
+---
+
+## ⚙️ 3. `create_index.py` — index des rapports
+
+### Utilisation
+
+```bash
+python3 src/create_index.py --input <dossier des rapports .md> [OPTIONS]
+```
+
+| Argument  |   Type   | Description                                  |
+|:----------|:--------:|:---------------------------------------------|
+| `--input` | *Requis* | Dossier des rapports (ex. `data/reports.d`). |
+
+### Index généré (`reports.d/INDEX.md`)
+
+Une liste avec 3 colonnes:
+1. **N°** : numéro séquentiel.
+2. **Période** : dates du premier et dernier message
+3. **Document** : titre et lien vers le rapport (dans le même dossier).
 
 ---
 
@@ -210,18 +235,18 @@ python3 src/generate_reports.py --input <FICHIER_JSON> [OPTIONS]
 }
 ```
 
-| Champ | Description |
-| :--- | :--- |
-| `meta.date_derniere_mise_a_jour` | Horodatage ISO de la dernière exécution modifiante. |
-| `meta.nombre_conversations` / `nombre_messages` | Compteurs globaux. |
-| `conversations[].sujet_normalise` | Objet nettoyé des préfixes de réponse/transfert (base du regroupement). |
-| `conversations[].date_debut` / `date_fin` | Bornes chronologiques du fil. |
-| `messages[].timestamp` | Date d'envoi en ISO 8601 (heure locale). |
-| `messages[].message_id` / `in_reply_to` | Identifiants RFC 822, sans chevrons. |
-| `messages[].destinataires` | Listes `to`, `cc`, `bcc` d'objets `{"nom", "email"}`. |
-| `messages[].contenu_nettoye` | Corps textuel après nettoyage (accents décodés selon le charset). |
-| `messages[].pieces_jointes[]` | `nom` (nom original), `type` (MIME), `taille` (octets), `chemin` (absolu, si `--attachment-dir`). |
-| `messages[].forwarded_message` | `{auteur, date, sujet}` si transfert détecté, sinon `null`. |
+| Champ                                           | Description                                                                                       |
+|:------------------------------------------------|:--------------------------------------------------------------------------------------------------|
+| `meta.date_derniere_mise_a_jour`                | Horodatage ISO de la dernière exécution modifiante.                                               |
+| `meta.nombre_conversations` / `nombre_messages` | Compteurs globaux.                                                                                |
+| `conversations[].sujet_normalise`               | Objet nettoyé des préfixes de réponse/transfert (base du regroupement).                           |
+| `conversations[].date_debut` / `date_fin`       | Bornes chronologiques du fil.                                                                     |
+| `messages[].timestamp`                          | Date d'envoi en ISO 8601 (heure locale).                                                          |
+| `messages[].message_id` / `in_reply_to`         | Identifiants RFC 822, sans chevrons.                                                              |
+| `messages[].destinataires`                      | Listes `to`, `cc`, `bcc` d'objets `{"nom", "email"}`.                                             |
+| `messages[].contenu_nettoye`                    | Corps textuel après nettoyage (accents décodés selon le charset).                                 |
+| `messages[].pieces_jointes[]`                   | `nom` (nom original), `type` (MIME), `taille` (octets), `chemin` (absolu, si `--attachment-dir`). |
+| `messages[].forwarded_message`                  | `{auteur, date, sujet}` si transfert détecté, sinon `null`.                                       |
 
 ---
 
